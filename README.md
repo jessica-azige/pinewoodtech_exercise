@@ -1,2 +1,4 @@
 # Pinewood Technologies - Coding Exercise
-- Used Blazor Webassembly as the UI and a standard ASP.NET Web API project
+- UI = Blazor Web Assembly project
+- API = ASP.NET Web API project
+- Database on SQL Server (using EF Core library as the ORM)
