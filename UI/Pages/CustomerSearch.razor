@@ -1,0 +1,88 @@
+﻿@page "/Customer"
+
+@inject IDialogService DialogService
+@inject CustomerService CustomerService
+
+<PageTitle>Customers</PageTitle>
+
+<MudStack>
+    <MudText Typo="Typo.h2">Customers</MudText>
+    <MudTable T="Customer" @ref="@_table" ServerData="@GetCustomerData" OnRowClick="OnRowClick">
+        <ToolBarContent>
+            <MudSpacer />
+            <MudButton StartIcon="@Icons.Material.Rounded.Add"
+            OnClick="@(() => OpenNewOrExistingCustomer())">
+                Add Customer
+            </MudButton>
+        </ToolBarContent>
+        <HeaderContent>
+            <MudTh>First Name</MudTh>
+            <MudTh>Last Name</MudTh>
+            <MudTh></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="First Name">@context.FirstName</MudTd>
+            <MudTd DataLabel="Last Name">@context.LastName</MudTd>
+            <MudTd>
+                <MudIconButton OnClick="@(() => OnDelete(context))"
+                    Icon="@Icons.Material.Rounded.Delete"/>
+            </MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Typo="Typo.caption">No matching records found</MudText>
+        </NoRecordsContent>
+        <LoadingContent>
+            <MudText>Loading...</MudText>
+        </LoadingContent>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudStack>
+
+@code {
+    private MudTable<Customer> _table;
+
+    private IEnumerable<Customer> _pagedCustomers;
+    private int _totalCount;
+
+
+    private async Task<TableData<Customer>> GetCustomerData(TableState state, CancellationToken token)
+    {
+        IEnumerable<Customer> data = await CustomerService.GetCustomers();
+        _pagedCustomers = data.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray();
+        return  new TableData<Customer>() { TotalItems = _totalCount, Items = _pagedCustomers };
+    }
+
+    private async Task OpenNewOrExistingCustomer(Customer customer = null)
+    {
+        var dialogParams = new DialogParameters<CustomerDetail> { { x => x.Customer, customer } };
+        var dialog = await DialogService.ShowAsync<CustomerDetail>(null, dialogParams);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+            await _table.ReloadServerData();
+    }
+
+    private async Task OnRowClick(TableRowClickEventArgs<Customer> row)
+    {
+        Customer? customer = row.Item;
+        if (customer == null)
+            return;
+
+        await OpenNewOrExistingCustomer(customer);
+    }
+
+    private async Task OnDelete(Customer customer)
+    {
+        var dialogParams = new DialogParameters<YesNoDialogBox>();
+        dialogParams.Add("Customer", customer);
+        dialogParams.Add("Description", "Are you sure you want to delete " + customer.FullName());
+
+        var dialog = await DialogService.ShowAsync<YesNoDialogBox>(null, dialogParams);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+            await _table.ReloadServerData();
+    }
+}

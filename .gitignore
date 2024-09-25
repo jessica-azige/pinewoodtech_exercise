@@ -1,0 +1,11 @@
+
+/API/bin/Debug
+/API/obj/Debug
+/UI/bin/Debug
+/UI/obj/Debug
+/Common/obj/Debug
+/Common/bin/Debug
+API/obj/project.nuget.cache
+API/obj/API.csproj.nuget.dgspec.json
+UI/obj/UI.csproj.nuget.dgspec.json
+UI/obj/project.nuget.cache

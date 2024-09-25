@@ -1,0 +1,154 @@
+﻿@inject CustomerService CustomerService
+
+<MudDialog Wid>
+    <TitleContent>
+        <MudText Typo="Typo.h3">@((_isNew ? "New " : "Edit ") + "Customer")</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @bind-isValid="@_isValid" @ref="_form">
+            <MudGrid Spacing="2">
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_title"
+                                  Label="Title"
+                                  Required="true" />
+                </MudItem>
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_firstName"
+                                  Label="First Name"
+                                  Disabled="@(!_isNew)"
+                                  Required="true" />
+                </MudItem>
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_middleName"
+                                  Disabled="@(!_isNew)"
+                                  Label="Middle Name"/>
+                </MudItem>
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_lastName"
+                                  Label="Last Name"
+                                  Disabled="@(!_isNew)"
+                                  Required="true" />
+                </MudItem>
+                <MudItem md="4" xs="12">
+                    <MudDatePicker @bind-Date="@_dob"
+                                  Label="Date of Birth"
+                                   Disabled="@(!_isNew)"
+                                  Required="true" />
+                </MudItem>
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_email"
+                                  Validation="@(new Func<string, IEnumerable<string>>(ValidateEmail))"
+                                  Label="Email" />
+                </MudItem>
+
+                <MudItem md="4" xs="12">
+                    <MudTextField @bind-Value="@_phoneNumber"
+                                  Mask="@(new PatternMask("00000000000"))"
+                                  Validation="@(new Func<string, IEnumerable<string>>(ValidatePhoneNumber))"
+                                  Label="Phone Number" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="OnCancel">Cancel</MudButton>
+        <MudButton 
+            Color="Color.Primary"
+            OnClick="OnOk">Ok
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private MudDialogInstance MudDialog { get; set; }
+
+    [Parameter]
+    public Customer Customer { get; set; }
+
+    private MudForm _form;
+    private bool _isValid;
+    private bool _isNew;
+
+    private string _title;
+    private string _firstName;
+    private string? _middleName;
+    private string _lastName;
+    private string? _email;
+    private string? _phoneNumber;
+    private DateTime? _dob = DateTime.Now;
+
+    protected override Task OnInitializedAsync()
+    {
+        if (Customer == null)
+        {
+            Customer = new Customer();
+            _isNew = true;
+        }
+        else
+        {
+            _title = Customer.Title;
+            _firstName = Customer.FirstName;
+            _middleName = Customer.MiddleName;
+            _lastName = Customer.LastName;
+            _phoneNumber = Customer.PhoneNumber;
+            _dob = Customer.DateOfBirth;
+            _email = Customer.Email;
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+    private IEnumerable<string> ValidateEmail(string email)
+    {
+        // very basic for this example
+        if (!string.IsNullOrEmpty(email) && !email.Contains("@"))
+            yield return "Invalid format for email";
+    }
+
+    private IEnumerable<string> ValidatePhoneNumber(string phone)
+    {
+        // int's max value is too small to use here
+        if (!string.IsNullOrEmpty(phone) && (phone.Length != 11 || !long.TryParse(phone.Substring(1), out long result)))
+            yield return "Invalid format for phone number";
+    }
+
+    private async void OnOk() 
+    {
+        await _form.Validate();
+
+        if (!_isValid)
+            return;
+
+        Customer.FirstName = _firstName;
+        Customer.MiddleName = _middleName;
+        Customer.LastName = _lastName;
+        Customer.Title = _title;
+        Customer.DateOfBirth = _dob!.Value;
+        Customer.Email = _email;
+        Customer.PhoneNumber = _phoneNumber;
+
+        bool success = false;
+
+        if (_isNew)
+        {
+            Customer.CreatedDttm = DateTime.Now;
+            success = await CustomerService.CreateCustomer(Customer);
+        }
+        
+        else
+            success = await CustomerService.UpdateCustomer(Customer);
+
+        if (!success)
+            return; 
+
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+
+    private void OnCancel() 
+    {
+        MudDialog.Cancel();
+    }
+
+
+}
